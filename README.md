@@ -17,7 +17,7 @@ You need to have the Oracle Java or Open JDK already installed before running th
 
 
 ## Quick Start
-`sh <( curl -L https://raw.github.com/antonyx/jenkins-slave-jnlp/master/install.sh )`
+`sh <( curl -L https://raw.github.com/dia38/jenkins-slave-jnlp/master/install.sh )`
 
 
 
@@ -34,7 +34,7 @@ on OS X the following features is added:
 
 
 ## Install
-`sh <( curl -L https://raw.github.com/antonyx/jenkins-slave-jnlp/master/install.sh ) [options]`
+`sh <( curl -L https://raw.github.com/dia38/jenkins-slave-jnlp/master/install.sh ) [options]`
 
 The install script has the following options:
 * `--java-args="ARGS"` to specify any optional java arguments. *Optional;* the installer does not test these arguments.
