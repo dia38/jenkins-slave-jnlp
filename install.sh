@@ -12,11 +12,10 @@ SERVICE_HOME=${SERVICE_HOME:-"/var/lib/${SERVICE_USER}"}
 SERVICE_CONF=""   # set in create_user function
 SERVICE_WRKSPC="" # set in create_user function
 MASTER_NAME=""    # set default to jenkins later
-MASTER_USER=""    # set default to `whoami` later
 MASTER=""
 MASTER_HTTP_PORT=""
 SLAVE_NODE=""
-SLAVE_TOKEN=${SLAVE_TOKEN:-""}
+JENKINS_SECRET=${JENKINS_SECRET:-""}
 OSX_KEYCHAIN="login.keychain"
 OSX_KEYCHAIN_PASS=${OSX_KEYCHAIN_PASS:-""}
 KEYSTORE_PASS=""
@@ -157,14 +156,12 @@ install_files() {
 process_conf() {
 	if [ -f ${SERVICE_CONF} ]; then
 		chmod 666 ${SERVICE_CONF}
-		SLAVE_TOKEN_TMP=${SLAVE_TOKEN}
 		. ${SERVICE_CONF}
 		chmod 400 ${SERVICE_CONF}
 		SLAVE_NODE="${SLAVE_NODE:-$JENKINS_SLAVE}"
-		SLAVE_TOKEN="${SLAVE_TOKEN_TMP:-$SLAVE_TOKEN}"
+		JENKINS_SECRET="${JENKINS_SECRET:-$JENKINS_SECRET}"
 		MASTER=${MASTER:-$JENKINS_MASTER}
 		MASTER_HTTP_PORT=${HTTP_PORT}
-		MASTER_USER=${MASTER_USER:-$JENKINS_USER}
 		KEYSTORE_PASS="${KEYSTORE_PASS:-$JAVA_TRUSTSTORE_PASS}"
 	fi
 	if [ "${OS}" = "Darwin" ] && [ -f ${SERVICE_HOME}/Library/.keychain_pass ]; then
@@ -178,8 +175,7 @@ process_args() {
 	while [ $# -gt 0 ]; do
 		case $1 in
 			--node=*) SLAVE_NODE="${1#*=}"     ;;
-			--token=*) SLAVE_TOKEN="${1#*=}"   ;;
-			--user=*) MASTER_USER=${1#*=}      ;;
+			--secret=*) JENKINS_SECRET="${1#*=}"   ;;
 			--master=*) MASTER=${1#*=}         ;;
 			--java-args=*) JAVA_ARGS="${1#*=}" ;;
 			--confirm) G_CONFIRM="yes"         ;;
@@ -217,24 +213,11 @@ configure_daemon() {
 		read -p "Name of this slave on ${MASTER_NAME} [$SLAVE_NODE]: " RESPONSE
 		SLAVE_NODE="${RESPONSE:-$SLAVE_NODE}"
 	fi
-	if [ -z $MASTER_USER ]; then
-		[ "${SERVICE_USER}" != "jenkins" ] && MASTER_USER=${SERVICE_USER} || MASTER_USER=`whoami`
-		echo
-		read -p "Account that ${SLAVE_NODE} connects to ${MASTER_NAME} as [${MASTER_USER}]: " RESPONSE
-		MASTER_USER=${RESPONSE:-$MASTER_USER}
-	fi
 	echo
-	if [ -z "${SLAVE_TOKEN}" ]; then
-		echo "${MASTER_USER}'s API token is required to authenticate a JNLP slave."
-		echo "The API token is listed at ${MASTER}${MASTER_HTTP_PORT}/user/${MASTER_USER}/configure"
-		read -p "API token for ${MASTER_USER}: " SLAVE_TOKEN
-	else
-		echo "Trying ${MASTER_USER}'s API token ${SLAVE_TOKEN}"
+	if [ -z "${JENKINS_SECRET}" ]; then
+		echo "The secret token is listed at ${MASTER}${MASTER_HTTP_PORT}/computer/${SLAVE_NODE}"
+		read -p "Secret for ${SLAVE_NODE}: " JENKINS_SECRET
 	fi
-	while ! curl -L --url ${MASTER}${MASTER_HTTP_PORT}/user/${MASTER_USER} --user ${MASTER_USER}:${SLAVE_TOKEN} --insecure --silent --head --fail --output /dev/null ; do
-		echo "Unable to authenticate ${MASTER_USER} with this token"
-		read -p "API token for ${MASTER_USER}: " SLAVE_TOKEN
-	done
 
 	if [ "${OS}" = "Darwin" ]; then
 		tr="`which tr`"
@@ -423,7 +406,6 @@ write_config() {
 	echo "JENKINS_SLAVE=\"${SLAVE_NODE}\"" >> ${CONF_TMP}
 	echo "JENKINS_MASTER=${MASTER}" >> ${CONF_TMP}
 	echo "HTTP_PORT=${MASTER_HTTP_PORT}" >> ${CONF_TMP}
-	echo "JENKINS_USER=${MASTER_USER}" >> ${CONF_TMP}
 	echo "JENKINS_SECRET=${JENKINS_SECRET}" >>${CONF_TMP}
 	echo "JAVA_ARGS=\"${JAVA_ARGS}\"" >> ${CONF_TMP}
 	if [ "${OS}" != "Darwin" ]; then
