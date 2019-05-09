@@ -24,7 +24,6 @@ JAVA_TRUSTSTORE_PASS=""
 JAVA_ARGS=${JAVA_ARGS:-""}
 INSTALL_TMP=`mktemp -d -q -t org.jenkins-ci.slave.jnlp.XXXXXX`
 DOWNLOADS_PATH=https://raw.github.com/dia38/jenkins-slave-jnlp/master
-SUDO_CMD="sudo"
 G_CONFIRM=${CONFIRM:-""}
 OS="`uname -s`"
 
@@ -36,14 +35,14 @@ create_user() {
 			if [ ${?} -ne 0 ]; then
 				pw groupadd ${SERVICE_GROUP}
 			fi
-			${SUDO_CMD} pw user add -n ${SERVICE_USER} -g ${SERVICE_GROUP} -d ${SERVICE_HOME} -m -w no -s ${USER_SHELL} -c 'Jenkins Node Service'
+			pw user add -n ${SERVICE_USER} -g ${SERVICE_GROUP} -d ${SERVICE_HOME} -m -w no -s ${USER_SHELL} -c 'Jenkins Node Service'
 		else
 			if [ "${OS}" = "SunOS" ]; then
 				USER_SHELL="/usr/sbin/sh"
 			fi
-			${SUDO_CMD} groupadd ${SERVICE_GROUP}
-			${SUDO_CMD} useradd -g ${SERVICE_GROUP} -d ${SERVICE_HOME} -m -s ${USER_SHELL} -c 'Jenkins Node Service' ${SERVICE_USER}
-			${SUDO_CMD} passwd -l ${SERVICE_USER}
+			groupadd ${SERVICE_GROUP}
+			useradd -g ${SERVICE_GROUP} -d ${SERVICE_HOME} -m -s ${USER_SHELL} -c 'Jenkins Node Service' ${SERVICE_USER}
+			passwd -l ${SERVICE_USER}
 		fi
 	fi
 	SERVICE_CONF=${SERVICE_HOME}/org.jenkins-ci.slave.jnlp.conf
@@ -63,21 +62,21 @@ create_user_osx() {
 		else
 			# create jenkins group
 			NEXT_GID=$((`dscl /Local/Default list /Groups gid | awk '{ print $2 }' | sort -n | grep -v ^[5-9] | tail -n1` + 1))
-			${SUDO_CMD} dscl /Local/Default create /Groups/${SERVICE_GROUP}
-			${SUDO_CMD} dscl /Local/Default create /Groups/${SERVICE_GROUP} PrimaryGroupID $NEXT_GID
-			${SUDO_CMD} dscl /Local/Default create /Groups/${SERVICE_GROUP} Password \*
-			${SUDO_CMD} dscl /Local/Default create /Groups/${SERVICE_GROUP} RealName 'Jenkins Node Service'
+			dscl /Local/Default create /Groups/${SERVICE_GROUP}
+			dscl /Local/Default create /Groups/${SERVICE_GROUP} PrimaryGroupID $NEXT_GID
+			dscl /Local/Default create /Groups/${SERVICE_GROUP} Password \*
+			dscl /Local/Default create /Groups/${SERVICE_GROUP} RealName 'Jenkins Node Service'
 		fi
 		# create jenkins user
 		NEXT_UID=$((`dscl /Local/Default list /Users uid | awk '{ print $2 }' | sort -n | grep -v ^[5-9] | tail -n1` + 1))
-		${SUDO_CMD} dscl /Local/Default create /Users/${SERVICE_USER}
-		${SUDO_CMD} dscl /Local/Default create /Users/${SERVICE_USER} UniqueID $NEXT_UID
-		${SUDO_CMD} dscl /Local/Default create /Users/${SERVICE_USER} PrimaryGroupID $NEXT_GID
-		${SUDO_CMD} dscl /Local/Default create /Users/${SERVICE_USER} UserShell /bin/bash
-		${SUDO_CMD} dscl /Local/Default create /Users/${SERVICE_USER} NFSHomeDirectory ${SERVICE_HOME}
-		${SUDO_CMD} dscl /Local/Default create /Users/${SERVICE_USER} Password \*
-		${SUDO_CMD} dscl /Local/Default create /Users/${SERVICE_USER} RealName 'Jenkins Node Service'
-		${SUDO_CMD} dseditgroup -o edit -a ${SERVICE_USER} -t user ${SERVICE_USER}
+		dscl /Local/Default create /Users/${SERVICE_USER}
+		dscl /Local/Default create /Users/${SERVICE_USER} UniqueID $NEXT_UID
+		dscl /Local/Default create /Users/${SERVICE_USER} PrimaryGroupID $NEXT_GID
+		dscl /Local/Default create /Users/${SERVICE_USER} UserShell /bin/bash
+		dscl /Local/Default create /Users/${SERVICE_USER} NFSHomeDirectory ${SERVICE_HOME}
+		dscl /Local/Default create /Users/${SERVICE_USER} Password \*
+		dscl /Local/Default create /Users/${SERVICE_USER} RealName 'Jenkins Node Service'
+		dseditgroup -o edit -a ${SERVICE_USER} -t user ${SERVICE_USER}
 	fi
 	SERVICE_CONF=${SERVICE_HOME}/Library/Preferences/org.jenkins-ci.slave.jnlp.conf
 	SERVICE_WRKSPC=${SERVICE_HOME}/Library/Developer/org.jenkins-ci.slave.jnlp
@@ -86,7 +85,7 @@ create_user_osx() {
 install_files() {
 	# create the jenkins home dir
 	if [ ! -d ${SERVICE_WRKSPC} ]; then
-		${SUDO_CMD} mkdir -p ${SERVICE_WRKSPC}
+		mkdir -p ${SERVICE_WRKSPC}
 	fi
 
 	SEC_HELPER="security.sh"
@@ -117,25 +116,25 @@ install_files() {
 	fi
 
 	# download the jenkins JNLP security helper script
-	${SUDO_CMD} curl --silent -L --url ${DOWNLOADS_PATH}/${SEC_HELPER} -o ${SERVICE_WRKSPC}/security.sh
-	${SUDO_CMD} chmod 755 ${SERVICE_WRKSPC}/security.sh
+	curl --silent -L --url ${DOWNLOADS_PATH}/${SEC_HELPER} -o ${SERVICE_WRKSPC}/security.sh
+	chmod 755 ${SERVICE_WRKSPC}/security.sh
 
 	# download the correct jnlp daemon helper
-	${SUDO_CMD} curl --silent -L --url ${DOWNLOADS_PATH}/${JNLP_HELPER} -o ${SERVICE_WRKSPC}/${JNLP_HELPER}
+	curl --silent -L --url ${DOWNLOADS_PATH}/${JNLP_HELPER} -o ${SERVICE_WRKSPC}/${JNLP_HELPER}
 	if [ "${OS}" = "SunOS" ]; then
-		${SUDO_CMD} sed "s#\${JENKINS_HOME}#${SERVICE_HOME}#g" ${SERVICE_WRKSPC}/${JNLP_HELPER} > /tmp/jnlp.tmp
-		${SUDO_CMD} mv /tmp/jnlp.tmp ${SERVICE_WRKSPC}/${JNLP_HELPER}
-		${SUDO_CMD} sed "s#\${JENKINS_USER}#${SERVICE_USER}#g" ${SERVICE_WRKSPC}/${JNLP_HELPER} > /tmp/jnlp.tmp
-		${SUDO_CMD} mv /tmp/jnlp.tmp ${SERVICE_WRKSPC}/${JNLP_HELPER}
+		sed "s#\${JENKINS_HOME}#${SERVICE_HOME}#g" ${SERVICE_WRKSPC}/${JNLP_HELPER} > /tmp/jnlp.tmp
+		mv /tmp/jnlp.tmp ${SERVICE_WRKSPC}/${JNLP_HELPER}
+		sed "s#\${JENKINS_USER}#${SERVICE_USER}#g" ${SERVICE_WRKSPC}/${JNLP_HELPER} > /tmp/jnlp.tmp
+		mv /tmp/jnlp.tmp ${SERVICE_WRKSPC}/${JNLP_HELPER}
 	elif [ "${OS}" = "Linux" ]; then
-		${SUDO_CMD} sed -i "s#\${JENKINS_HOME}#${SERVICE_WRKSPC}#g" ${SERVICE_WRKSPC}/${JNLP_HELPER}
-		${SUDO_CMD} sed -i "s#\${JENKINS_USER}#${SERVICE_USER}#g" ${SERVICE_WRKSPC}/${JNLP_HELPER}
+		sed -i "s#\${JENKINS_HOME}#${SERVICE_WRKSPC}#g" ${SERVICE_WRKSPC}/${JNLP_HELPER}
+		sed -i "s#\${JENKINS_USER}#${SERVICE_USER}#g" ${SERVICE_WRKSPC}/${JNLP_HELPER}
 	else
-		${SUDO_CMD} sed -i '' "s#\${JENKINS_HOME}#${SERVICE_WRKSPC}#g" ${SERVICE_WRKSPC}/${JNLP_HELPER}
-		${SUDO_CMD} sed -i '' "s#\${JENKINS_USER}#${SERVICE_USER}#g" ${SERVICE_WRKSPC}/${JNLP_HELPER}
+		sed -i '' "s#\${JENKINS_HOME}#${SERVICE_WRKSPC}#g" ${SERVICE_WRKSPC}/${JNLP_HELPER}
+		sed -i '' "s#\${JENKINS_USER}#${SERVICE_USER}#g" ${SERVICE_WRKSPC}/${JNLP_HELPER}
 	fi
-	${SUDO_CMD} rm -f ${JNLP_HELPER_DEST}
-	${SUDO_CMD} install ${INSTALL_OPTS}
+	rm -f ${JNLP_HELPER_DEST}
+	install ${INSTALL_OPTS}
 
 	if [ "${OS}" = "SunOS" ]; then
 		svccfg import ${JNLP_HELPER_DEST}
@@ -143,24 +142,24 @@ install_files() {
 	fi
 
 	# download the jenkins JNLP slave script
-	${SUDO_CMD} curl --silent -L --url ${DOWNLOADS_PATH}/slave.jnlp.sh -o ${SERVICE_WRKSPC}/slave.jnlp.sh
-	${SUDO_CMD} chmod 755 ${SERVICE_WRKSPC}/slave.jnlp.sh
+	curl --silent -L --url ${DOWNLOADS_PATH}/slave.jnlp.sh -o ${SERVICE_WRKSPC}/slave.jnlp.sh
+	chmod 755 ${SERVICE_WRKSPC}/slave.jnlp.sh
 
 	# jenkins should own jenkin's home directory and all its contents
-	${SUDO_CMD} chown -R ${SERVICE_USER}:${SERVICE_GROUP} ${SERVICE_HOME}
+	chown -R ${SERVICE_USER}:${SERVICE_GROUP} ${SERVICE_HOME}
 	# create a logging space
 	if [ ! -d /var/log/${SERVICE_USER} ]; then
-		${SUDO_CMD} mkdir /var/log/${SERVICE_USER}
-		${SUDO_CMD} chown ${SERVICE_USER}:${SERVICE_GROUP} /var/log/${SERVICE_USER}
+		mkdir /var/log/${SERVICE_USER}
+		chown ${SERVICE_USER}:${SERVICE_GROUP} /var/log/${SERVICE_USER}
 	fi
 }
 
 process_conf() {
 	if [ -f ${SERVICE_CONF} ]; then
-		${SUDO_CMD} chmod 666 ${SERVICE_CONF}
+		chmod 666 ${SERVICE_CONF}
 		SLAVE_TOKEN_TMP=${SLAVE_TOKEN}
 		. ${SERVICE_CONF}
-		${SUDO_CMD} chmod 400 ${SERVICE_CONF}
+		chmod 400 ${SERVICE_CONF}
 		SLAVE_NODE="${SLAVE_NODE:-$JENKINS_SLAVE}"
 		SLAVE_TOKEN="${SLAVE_TOKEN_TMP:-$SLAVE_TOKEN}"
 		MASTER=${MASTER:-$JENKINS_MASTER}
@@ -169,9 +168,9 @@ process_conf() {
 		KEYSTORE_PASS="${KEYSTORE_PASS:-$JAVA_TRUSTSTORE_PASS}"
 	fi
 	if [ "${OS}" = "Darwin" ] && [ -f ${SERVICE_HOME}/Library/.keychain_pass ]; then
-		${SUDO_CMD} chmod 666 ${SERVICE_HOME}/Library/.keychain_pass
+		chmod 666 ${SERVICE_HOME}/Library/.keychain_pass
 		. ${SERVICE_HOME}/Library/.keychain_pass
-		${SUDO_CMD} chmod 400 ${SERVICE_HOME}/Library/.keychain_pass
+		chmod 400 ${SERVICE_HOME}/Library/.keychain_pass
 	fi
 }
 
