@@ -23,14 +23,14 @@ KEYSTORE_PASS=""
 JAVA_TRUSTSTORE_PASS=""
 JAVA_ARGS=${JAVA_ARGS:-""}
 INSTALL_TMP=`mktemp -d -q -t org.jenkins-ci.slave.jnlp.XXXXXX`
-DOWNLOADS_PATH=https://raw.github.com/antonyx/jenkins-slave-jnlp/master
+DOWNLOADS_PATH=https://raw.github.com/dia38/jenkins-slave-jnlp/master
 SUDO_CMD="sudo"
 G_CONFIRM=${CONFIRM:-""}
 OS="`uname -s`"
 
 create_user() {
 	if [ ! -d "${SERVICE_HOME}" ]; then
-		USER_SHELL="/bin/sh"
+		USER_SHELL="/usr/sbin/nologin"
 		if [ "${OS}" = "FreeBSD" ]; then
 			pw groupshow ${SERVICE_GROUP} > /dev/null
 			if [ ${?} -ne 0 ]; then
@@ -425,10 +425,10 @@ write_config() {
 	echo "JENKINS_MASTER=${MASTER}" >> ${CONF_TMP}
 	echo "HTTP_PORT=${MASTER_HTTP_PORT}" >> ${CONF_TMP}
 	echo "JENKINS_USER=${MASTER_USER}" >> ${CONF_TMP}
+	echo "JENKINS_SECRET=${JENKINS_SECRET}" >>${CONF_TMP}
 	echo "JAVA_ARGS=\"${JAVA_ARGS}\"" >> ${CONF_TMP}
 	if [ "${OS}" != "Darwin" ]; then
 		echo "JAVA_TRUSTSTORE_PASS=${KEYSTORE_PASS}" >> ${CONF_TMP}
-		echo "SLAVE_TOKEN=${SLAVE_TOKEN}" >> ${CONF_TMP}
 	fi
 	sudo mv ${CONF_TMP} ${SERVICE_CONF}
 	# secure the config file

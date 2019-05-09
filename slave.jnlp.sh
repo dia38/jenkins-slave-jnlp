@@ -12,8 +12,7 @@ fi
 JENKINS_SLAVE=''
 JENKINS_MASTER=''
 HTTP_PORT=''
-JENKINS_USER=''
-JENKINS_TOKEN=''
+JENKINS_SECRET=''
 JAVA_ARGS='-Djava.awt.headless=true'
 JAVA_ARGS_LOG=''
 JAVA_TRUSTSTORE=${JENKINS_HOME}/.keystore
@@ -91,17 +90,8 @@ if [ -f $JAVA_TRUSTSTORE ]; then
 	JAVA_ARGS_LOG="${JAVA_ARGS} -Djavax.net.ssl.trustStore=${JAVA_TRUSTSTORE} -Djavax.net.ssl.trustStorePassword=********"
 	JAVA_ARGS="${JAVA_ARGS} -Djavax.net.ssl.trustStore=${JAVA_TRUSTSTORE} -Djavax.net.ssl.trustStorePassword=${JAVA_TRUSTSTORE_PASS}" 
 fi
-# The user and API token are required for Jenkins >= 1.498
-if [ ! -z ${JENKINS_USER} ]; then
-	if [ "${OS}" = "Darwin" ]; then
-		JENKINS_TOKEN=$( ${JENKINS_WRKSPC}/security.sh get-password --account=${JENKINS_USER} --service="${JENKINS_SLAVE}" ${AGENT} )
-	else
-		JENKINS_TOKEN=${SLAVE_TOKEN}
-	fi
-	JENKINS_USER="-jnlpCredentials ${JENKINS_USER}:"
-fi
-echo "Calling java ${JAVA_ARGS_LOG} -jar ${JENKINS_WRKSPC}/slave.jar -jnlpUrl ${JENKINS_JNLP_URL} ${JENKINS_USER}********"
-java ${JAVA_ARGS} -jar ${JENKINS_WRKSPC}/slave.jar -jnlpUrl ${JENKINS_JNLP_URL} ${JENKINS_USER}${JENKINS_TOKEN} &
+echo "Calling java ${JAVA_ARGS_LOG} -jar ${JENKINS_WRKSPC}/slave.jar -jnlpUrl ${JENKINS_JNLP_URL} -secret ********"
+java ${JAVA_ARGS} -jar ${JENKINS_WRKSPC}/slave.jar -jnlpUrl ${JENKINS_JNLP_URL} -secret ${JENKINS_SECRET} &
 echo $! > ${JENKINS_WRKSPC}/.slave.pid
 wait `cat ${JENKINS_WRKSPC}/.slave.pid`
 unload
