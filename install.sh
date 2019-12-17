@@ -39,8 +39,8 @@ create_user() {
 			if [ "${OS}" = "SunOS" ]; then
 				USER_SHELL="/usr/sbin/sh"
 			fi
-			groupadd ${SERVICE_GROUP}
-			useradd -g ${SERVICE_GROUP} -d ${SERVICE_HOME} -m -s ${USER_SHELL} -c 'Jenkins Node Service' ${SERVICE_USER}
+			groupadd -r ${SERVICE_GROUP}
+			useradd -r -g ${SERVICE_GROUP} -d ${SERVICE_HOME} -m -s ${USER_SHELL} -c 'Jenkins Node Service' ${SERVICE_USER}
 			passwd -l ${SERVICE_USER}
 		fi
 	fi
