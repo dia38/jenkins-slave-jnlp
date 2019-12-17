@@ -44,7 +44,8 @@ fi
 JENKINS_HOME=${HOME}
 JENKINS_CONF=${JENKINS_HOME}/org.jenkins-ci.slave.jnlp.conf
 JENKINS_WRKSPC=${JENKINS_HOME}/org.jenkins-ci.slave.jnlp
-if [ -f ${JENKINS_CONF} ]; then
+if [ -f ${JENKINS_CONF} ]
+then
 	. ${JENKINS_CONF}
 else
 	exit 3
